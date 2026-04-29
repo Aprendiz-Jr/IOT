@@ -176,42 +176,42 @@ body {
 .led--yellow.led--on { background: var(--clr-yellow); box-shadow: 0 0 12px var(--clr-yellow); }
 .led--red.led--on    { background: var(--clr-red); box-shadow: 0 0 12px var(--clr-red); }
 
-/* ---- Gauge ---- */
+/* ---- Gauge (Canvas) ---- */
 .gauge-wrapper {
   position: relative;
-  width: 200px;
+  width: 340px;
+  max-width: 100%;
   margin: 0 auto 1rem;
 }
 
-.gauge {
+#gaugeCanvas {
+  display: block;
   width: 100%;
+  height: auto;
 }
 
-.gauge__bg {
-  fill: none;
-  stroke: var(--clr-surface-alt);
-  stroke-width: 14;
-  stroke-linecap: round;
-}
-
-.gauge__fill {
-  fill: none;
-  stroke: var(--clr-green);
-  stroke-width: 14;
-  stroke-linecap: round;
-  stroke-dasharray: 251.2;
-  stroke-dashoffset: 0;
-  transition: stroke-dashoffset .4s ease, stroke .4s;
+.gauge-center-info {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
 }
 
 .gauge__value {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 2.2rem;
+  display: block;
+  font-size: 2.6rem;
   font-weight: 800;
   color: var(--clr-text);
+  line-height: 1;
+}
+
+.gauge__unit {
+  display: block;
+  font-size: .85rem;
+  color: var(--clr-text-muted);
+  margin-top: 2px;
 }
 
 /* ---- Sensor Meta ---- */
