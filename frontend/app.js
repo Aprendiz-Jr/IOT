@@ -49,7 +49,8 @@
   const ledRed1 = $("ledRed1");
   const ledRed2 = $("ledRed2");
 
-  const gaugeFill = $("gaugeFill");
+  const gaugeCanvas = $("gaugeCanvas");
+  const gaugeCtx = gaugeCanvas.getContext("2d");
   const gaugeValue = $("gaugeValue");
   const sensorMin = $("sensorMin");
   const sensorMax = $("sensorMax");
@@ -213,22 +214,179 @@
     });
   }
 
-  // ---------- Gauge ----------------------------------------------------------
-  const GAUGE_ARC_LENGTH = 251.2;
+  // ---------- Gauge (Canvas com ponteiro, faixas e ticks) --------------------
+  const GAUGE_START_ANGLE = Math.PI * 0.8;
+  const GAUGE_END_ANGLE   = Math.PI * 2.2;
+  const GAUGE_RANGE       = GAUGE_END_ANGLE - GAUGE_START_ANGLE;
+  const GAUGE_MAX         = 1023;
+
+  const GAUGE_ZONES = [
+    { from: 0,              to: LIMIAR_ALERTA, color: "#ef4444" },
+    { from: LIMIAR_ALERTA,  to: LIMIAR_SEGURO, color: "#eab308" },
+    { from: LIMIAR_SEGURO,  to: GAUGE_MAX,     color: "#22c55e" },
+  ];
+
+  let needleAngle = GAUGE_START_ANGLE;
+
+  function valToAngle(val) {
+    return GAUGE_START_ANGLE + (val / GAUGE_MAX) * GAUGE_RANGE;
+  }
+
+  function drawGauge(value) {
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = 340;
+    const cssH = 220;
+    gaugeCanvas.width  = cssW * dpr;
+    gaugeCanvas.height = cssH * dpr;
+    gaugeCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const cx = cssW / 2;
+    const cy = cssH - 38;
+    const outerR = 130;
+    const innerR = 100;
+    const tickOuterR = outerR + 6;
+
+    gaugeCtx.clearRect(0, 0, cssW, cssH);
+
+    // Background arc
+    gaugeCtx.beginPath();
+    gaugeCtx.arc(cx, cy, outerR, GAUGE_START_ANGLE, GAUGE_END_ANGLE);
+    gaugeCtx.arc(cx, cy, innerR, GAUGE_END_ANGLE, GAUGE_START_ANGLE, true);
+    gaugeCtx.closePath();
+    gaugeCtx.fillStyle = "#1e2130";
+    gaugeCtx.fill();
+
+    // Color zones
+    GAUGE_ZONES.forEach((z) => {
+      const a1 = valToAngle(z.from);
+      const a2 = valToAngle(z.to);
+      gaugeCtx.beginPath();
+      gaugeCtx.arc(cx, cy, outerR, a1, a2);
+      gaugeCtx.arc(cx, cy, innerR, a2, a1, true);
+      gaugeCtx.closePath();
+      gaugeCtx.fillStyle = z.color + "55";
+      gaugeCtx.fill();
+    });
+
+    // Active zone highlight
+    let activeColor = "#22c55e";
+    if (value <= LIMIAR_ALERTA) activeColor = "#ef4444";
+    else if (value <= LIMIAR_SEGURO) activeColor = "#eab308";
+
+    const activeEnd = valToAngle(value);
+    gaugeCtx.beginPath();
+    gaugeCtx.arc(cx, cy, outerR, GAUGE_START_ANGLE, activeEnd);
+    gaugeCtx.arc(cx, cy, innerR, activeEnd, GAUGE_START_ANGLE, true);
+    gaugeCtx.closePath();
+    gaugeCtx.fillStyle = activeColor + "aa";
+    gaugeCtx.fill();
+
+    // Glow on active arc
+    gaugeCtx.save();
+    gaugeCtx.shadowColor = activeColor;
+    gaugeCtx.shadowBlur = 12;
+    gaugeCtx.beginPath();
+    gaugeCtx.arc(cx, cy, outerR - 1, GAUGE_START_ANGLE, activeEnd);
+    gaugeCtx.strokeStyle = activeColor;
+    gaugeCtx.lineWidth = 2;
+    gaugeCtx.stroke();
+    gaugeCtx.restore();
+
+    // Major ticks + labels
+    const majorStep = 100;
+    gaugeCtx.font = "bold 11px sans-serif";
+    gaugeCtx.textAlign = "center";
+    gaugeCtx.textBaseline = "middle";
+
+    for (let v = 0; v <= GAUGE_MAX; v += majorStep) {
+      const a = valToAngle(v);
+      const cosA = Math.cos(a);
+      const sinA = Math.sin(a);
+
+      // Tick line
+      gaugeCtx.beginPath();
+      gaugeCtx.moveTo(cx + innerR * cosA, cy + innerR * sinA);
+      gaugeCtx.lineTo(cx + (innerR - 10) * cosA, cy + (innerR - 10) * sinA);
+      gaugeCtx.strokeStyle = "#8b90a0";
+      gaugeCtx.lineWidth = 2;
+      gaugeCtx.stroke();
+
+      // Label
+      const labelR = innerR - 22;
+      gaugeCtx.fillStyle = "#8b90a0";
+      gaugeCtx.fillText(String(v), cx + labelR * cosA, cy + labelR * sinA);
+    }
+
+    // Minor ticks
+    const minorStep = 50;
+    for (let v = 0; v <= GAUGE_MAX; v += minorStep) {
+      if (v % majorStep === 0) continue;
+      const a = valToAngle(v);
+      const cosA = Math.cos(a);
+      const sinA = Math.sin(a);
+      gaugeCtx.beginPath();
+      gaugeCtx.moveTo(cx + innerR * cosA, cy + innerR * sinA);
+      gaugeCtx.lineTo(cx + (innerR - 5) * cosA, cy + (innerR - 5) * sinA);
+      gaugeCtx.strokeStyle = "#555a6e";
+      gaugeCtx.lineWidth = 1;
+      gaugeCtx.stroke();
+    }
+
+    // Threshold markers (300 and 700)
+    [LIMIAR_ALERTA, LIMIAR_SEGURO].forEach((threshold) => {
+      const a = valToAngle(threshold);
+      const cosA = Math.cos(a);
+      const sinA = Math.sin(a);
+      gaugeCtx.beginPath();
+      gaugeCtx.moveTo(cx + (innerR + 2) * cosA, cy + (innerR + 2) * sinA);
+      gaugeCtx.lineTo(cx + (outerR - 2) * cosA, cy + (outerR - 2) * sinA);
+      gaugeCtx.strokeStyle = "#ffffff44";
+      gaugeCtx.lineWidth = 2;
+      gaugeCtx.stroke();
+    });
+
+    // Needle
+    const targetAngle = valToAngle(value);
+    needleAngle += (targetAngle - needleAngle) * 0.15;
+
+    const needleLen = outerR + 4;
+    const needleBaseW = 4;
+    const nCos = Math.cos(needleAngle);
+    const nSin = Math.sin(needleAngle);
+    const perpCos = Math.cos(needleAngle + Math.PI / 2);
+    const perpSin = Math.sin(needleAngle + Math.PI / 2);
+
+    gaugeCtx.save();
+    gaugeCtx.shadowColor = "rgba(0,0,0,.5)";
+    gaugeCtx.shadowBlur = 6;
+
+    gaugeCtx.beginPath();
+    gaugeCtx.moveTo(cx + needleLen * nCos, cy + needleLen * nSin);
+    gaugeCtx.lineTo(cx + needleBaseW * perpCos, cy + needleBaseW * perpSin);
+    gaugeCtx.lineTo(cx - 10 * nCos, cy - 10 * nSin);
+    gaugeCtx.lineTo(cx - needleBaseW * perpCos, cy - needleBaseW * perpSin);
+    gaugeCtx.closePath();
+    gaugeCtx.fillStyle = "#e4e6ed";
+    gaugeCtx.fill();
+
+    gaugeCtx.restore();
+
+    // Center cap
+    gaugeCtx.beginPath();
+    gaugeCtx.arc(cx, cy, 8, 0, Math.PI * 2);
+    gaugeCtx.fillStyle = "#3d4260";
+    gaugeCtx.fill();
+    gaugeCtx.beginPath();
+    gaugeCtx.arc(cx, cy, 4, 0, Math.PI * 2);
+    gaugeCtx.fillStyle = activeColor;
+    gaugeCtx.fill();
+
+    // Update text
+    gaugeValue.textContent = value;
+  }
 
   function updateGauge(value) {
-    const pct = value / 1023;
-    const offset = GAUGE_ARC_LENGTH * (1 - pct);
-    gaugeFill.style.strokeDashoffset = offset;
-    gaugeValue.textContent = value;
-
-    if (value > LIMIAR_SEGURO) {
-      gaugeFill.style.stroke = "var(--clr-green)";
-    } else if (value > LIMIAR_ALERTA) {
-      gaugeFill.style.stroke = "var(--clr-yellow)";
-    } else {
-      gaugeFill.style.stroke = "var(--clr-red)";
-    }
+    drawGauge(value);
   }
 
   // ---------- Stats ----------------------------------------------------------

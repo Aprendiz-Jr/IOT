@@ -39,16 +39,16 @@
       </div>
     </section>
 
-    <!-- ====== PAINEL DO SENSOR ====== -->
+    <!-- ====== PAINEL DO SENSOR (GAUGE) ====== -->
     <section class="card card--sensor">
-      <h2 class="card__title">Leitura do Sensor</h2>
+      <h2 class="card__title">Medição do Sensor</h2>
 
       <div class="gauge-wrapper">
-        <svg class="gauge" viewBox="0 0 200 120" aria-hidden="true">
-          <path class="gauge__bg" d="M20 100 A80 80 0 0 1 180 100" />
-          <path class="gauge__fill" id="gaugeFill" d="M20 100 A80 80 0 0 1 180 100" />
-        </svg>
-        <span class="gauge__value" id="gaugeValue">850</span>
+        <canvas id="gaugeCanvas" width="340" height="220"></canvas>
+        <div class="gauge-center-info">
+          <span class="gauge__value" id="gaugeValue">850</span>
+          <span class="gauge__unit">/ 1023</span>
+        </div>
       </div>
 
       <div class="sensor-meta">
@@ -68,17 +68,17 @@
 
       <!-- Limiares visuais -->
       <div class="thresholds">
-        <div class="threshold threshold--green">
+        <div class="threshold threshold--red">
           <span class="threshold__marker"></span>
-          <span>&gt; 700 — Seguro</span>
+          <span>0 – 300 — Perigo</span>
         </div>
         <div class="threshold threshold--yellow">
           <span class="threshold__marker"></span>
           <span>301 – 700 — Alerta</span>
         </div>
-        <div class="threshold threshold--red">
+        <div class="threshold threshold--green">
           <span class="threshold__marker"></span>
-          <span>≤ 300 — Perigo</span>
+          <span>701 – 1023 — Seguro</span>
         </div>
       </div>
     </section>
