@@ -1,45 +1,187 @@
-# 🔥 Projeto IoT: Alarme de Incêndio com Sensor de Chama e Display
+# Projeto IoT: Alarme de Incendio com Sensor de Chama e Display
 
-Olá! Bem-vindo(a) ao repositório do nosso projeto para a disciplina de **Internet das Coisas (IoT)**. Este trabalho acadêmico apresenta um sistema interativo e funcional de **Alarme de Incêndio com Sensor de Chama e Display**. 
+Projeto academico da disciplina de **Internet das Coisas (IoT)** que implementa um sistema de **alarme de incendio** utilizando Arduino UNO, sensor de chama, LEDs indicadores, buzzer e display de 7 segmentos.
 
-Nosso objetivo com este projeto foi unir conceitos de eletrônica e programação para criar um sistema de monitoramento de segurança responsivo e em tempo real.
+O sistema monitora continuamente o ambiente e sinaliza tres niveis de alerta (seguro, atencao e perigo critico) com feedback visual e sonoro em tempo real.
 
-## 👥 Equipe Desenvolvedora
-Este projeto foi construído com muita dedicação pelos alunos:
-* **Richardson da Conceição Ferreira**
-* **Wallace Gustavo da Silva**
-* **Emanuele De Oliveira Ferreira**
-* **Vinicius Silva Da Conceição**
-
----
-
-## 🛠️ Hardware e Componentes
-Para dar vida a este sistema, montamos nosso circuito utilizando os seguintes componentes principais:
-* **Microcontrolador**: Placa Arduino UNO.
-* **Sensor de Chama**: Responsável pela leitura do ambiente, conectado ao pino analógico `A0`.
-* **Botão de Ação**: Utilizado como silenciador de emergência, ligado ao pino digital `2` aproveitando o resistor interno de pull-up do Arduino.
-* **Buzzer**: Atua como o alarme sonoro do projeto, conectado ao pino digital `4`.
-* **LEDs Indicadores de Status**:
-    * 🟢 2 LEDs Verdes (pinos `9` e `10`).
-    * 🟡 2 LEDs Amarelos (pinos `7` e `8`).
-    * 🔴 2 LEDs Vermelhos (pinos `5` e `6`).
-* **Display de 7 Segmentos**: Modelo de Anodo Comum, utilizado para feedback visual de contagem.
+<p align="center">
+  <img src="docs/imagens/montagem-circuito-01.jpg" width="280" alt="Montagem do circuito - vista 1"/>
+  <img src="docs/imagens/montagem-circuito-02.jpg" width="280" alt="Montagem do circuito - vista 2"/>
+  <img src="docs/imagens/montagem-circuito-03.jpg" width="280" alt="Montagem do circuito - vista 3"/>
+</p>
 
 ---
 
-## ⚙️ Como o Sistema Funciona?
-O cérebro do projeto lê constantemente os dados do sensor de chama e traduz o nível de luz infravermelha (fogo) em três estados de alerta:
+## Equipe
 
-1. 🟢 **Monitoramento Seguro**: Quando o nível da leitura é superior a `700`, o ambiente está seguro e os LEDs verdes permanecem acesos.
-2. 🟡 **Alerta (Chama Detectada)**: Se a leitura cai para um valor entre `300` e `700`, o sistema acende os LEDs amarelos, indicando uma possível detecção inicial.
-3. 🔴 **Perigo Crítico**: Se o valor lido for menor ou igual a `300`, o sistema entra em alerta máximo! Os LEDs vermelhos acendem imediatamente e o buzzer começa a apitar em uma frequência contínua de 2500Hz.
-
-### 🔕 Recurso de Silenciamento (Reset)
-Pensando na usabilidade, adicionamos uma função de silenciamento. Caso o alarme dispare, o usuário pode pressionar o botão físico para pausar o aviso temporariamente. Ao ser acionado, o sistema realiza as seguintes ações:
-* Silencia o alarme principal e exibe no monitor serial a mensagem: *"Alarme Silenciado - Reiniciando em 10s"*.
-* O Display de 7 Segmentos inicia uma contagem regressiva visual do número `9` até o `0`.
-* A cada segundo da contagem regressiva, o buzzer emite um bipe rápido (50ms) a 2000Hz para avisar que o sistema está em pausa.
-* Ao final dos 10 segundos, o sistema retoma seu monitoramento normal automaticamente.
+| Nome |
+|------|
+| Richardson da Conceicao Ferreira |
+| Wallace Gustavo da Silva |
+| Emanuele De Oliveira Ferreira |
+| Vinicius Silva Da Conceicao |
 
 ---
-*Projeto desenvolvido para fins acadêmicos.*
+
+## Componentes Utilizados
+
+| Componente | Quantidade | Conexao |
+|---|---|---|
+| Arduino UNO | 1 | - |
+| Sensor de Chama (IR) | 1 | A0 |
+| Botao (push-button) | 1 | D2 (INPUT_PULLUP) |
+| Buzzer | 1 | D4 |
+| LED Verde | 2 | D9, D10 |
+| LED Amarelo | 2 | D7, D8 |
+| LED Vermelho | 2 | D5, D6 |
+| Display 7 Segmentos (Anodo Comum) | 1 | Ver tabela abaixo |
+| Resistores (220 Ohm para LEDs) | 6 | Em serie com cada LED |
+
+### Pinagem do Display de 7 Segmentos
+
+| Segmento | Pino Arduino |
+|---|---|
+| A | 13 |
+| B | 3 |
+| C | A4 |
+| D | A2 |
+| E | A1 |
+| F | 12 |
+| G | 11 |
+| DP (ponto) | A3 |
+
+---
+
+## Como Funciona
+
+O sensor de chama le continuamente a intensidade de luz infravermelha. O valor analogico (0-1023) determina o estado do sistema:
+
+```
+Leitura > 700  -->  SEGURO   (LEDs verdes acesos)
+300 < Leitura <= 700  -->  ALERTA   (LEDs amarelos acesos)
+Leitura <= 300  -->  PERIGO   (LEDs vermelhos + buzzer 2500 Hz)
+```
+
+### Diagrama de Estados
+
+```
+                  leitura > 700+H
+            ┌──────────────────────┐
+            v                      │
+       ┌─────────┐          ┌───────────┐
+       │ SEGURO  │──────────│  ALERTA   │
+       │ (verde) │ <= 700-H │ (amarelo) │
+       └─────────┘          └───────────┘
+            ^                    │
+            │  > 700+H           │ <= 300-H
+            │                    v
+            │              ┌───────────┐
+            └──────────────│  PERIGO   │
+               > 700+H    │(vermelho) │
+                           └───────────┘
+                                │
+                          botao pressionado
+                                v
+                         ┌──────────────┐
+                         │ SILENCIADO   │
+                         │ (contagem    │
+                         │  regressiva) │
+                         └──────────────┘
+                                │
+                          10 segundos
+                                v
+                           volta para
+                            SEGURO
+
+H = histerese (30 unidades) para evitar oscilacao
+```
+
+### Silenciamento
+
+Ao pressionar o botao fisico:
+1. O alarme e silenciado imediatamente
+2. O display de 7 segmentos inicia uma contagem regressiva de 9 ate 0
+3. A cada segundo, o buzzer emite um bipe rapido (50 ms a 2000 Hz)
+4. Apos 10 segundos, o monitoramento e retomado automaticamente
+
+---
+
+## Como Usar
+
+### Requisitos
+
+- [Arduino IDE](https://www.arduino.cc/en/software) (1.8+) **ou** [PlatformIO](https://platformio.org/)
+- Placa Arduino UNO (ou compativel)
+- Cabo USB tipo B
+
+### Upload via Arduino IDE
+
+1. Abra o arquivo `codigo.ino` na Arduino IDE
+2. Selecione a placa: **Ferramentas > Placa > Arduino UNO**
+3. Selecione a porta serial correta: **Ferramentas > Porta**
+4. Clique em **Upload** (seta para a direita)
+5. Abra o **Monitor Serial** (9600 baud) para acompanhar as leituras
+
+### Upload via PlatformIO
+
+```bash
+# Instalar PlatformIO CLI (se necessario)
+pip install platformio
+
+# Compilar e fazer upload
+pio run --target upload
+
+# Monitorar saida serial
+pio device monitor --baud 9600
+```
+
+### Calibracao
+
+Os limiares de deteccao podem variar conforme a iluminacao do ambiente. Para calibrar:
+
+1. Abra o Monitor Serial (9600 baud)
+2. Observe os valores exibidos com o sensor em repouso (sem chama)
+3. Aproxime uma chama e observe o valor diminuir
+4. Ajuste as constantes `LIMIAR_SEGURO` e `LIMIAR_ALERTA` no inicio do codigo conforme necessario
+
+---
+
+## Estrutura do Repositorio
+
+```
+Projeto_IoT/
+├── codigo.ino                # Codigo-fonte do Arduino
+├── platformio.ini            # Configuracao PlatformIO
+├── README.md
+├── LICENSE
+├── .gitignore
+└── docs/
+    └── imagens/
+        ├── montagem-circuito-01.jpg
+        ├── montagem-circuito-02.jpg
+        └── montagem-circuito-03.jpg
+```
+
+---
+
+## Melhorias Implementadas (v2)
+
+Em relacao ao codigo original (`codigo.c++`):
+
+- **Constantes nomeadas**: todos os valores magicos (limiares, frequencias, pinos) agora sao constantes com nomes descritivos
+- **Maquina de estados**: estados definidos via `enum` (`SEGURO`, `ALERTA`, `PERIGO`, `SILENCIADO`) com transicoes claras
+- **Histerese**: margem de 30 unidades nos limiares para evitar oscilacao/flickering de LEDs
+- **Debounce do botao**: tratamento de bouncing no botao fisico para evitar acionamentos falsos
+- **Tabela de segmentos**: display de 7 segmentos controlado via array bidimensional em vez de funcao com 7 parametros
+- **Validacao de entrada**: `mostrarNumero()` valida o digito antes de tentar exibir
+- **Monitor serial informativo**: exibe limiares configurados na inicializacao e transicoes de estado
+- **Macro F()**: strings armazenadas em Flash (PROGMEM) para economizar RAM
+- **Organizacao do codigo**: secoes bem delimitadas, funcoes com responsabilidade unica
+
+---
+
+## Licenca
+
+Este projeto esta licenciado sob a [MIT License](LICENSE).
+
+*Projeto desenvolvido para fins academicos.*
